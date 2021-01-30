@@ -1,6 +1,5 @@
 ﻿using Sirenix.OdinInspector;
 using Sirenix.Serialization;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -8,100 +7,28 @@ using UnityEngine;
 
 namespace Xeek
 {
-    public class XeeksProbability : SerializedMonoBehaviour
+    class XeeksProbability
     {
-        #region Configuration Properties & Fields
-
-        [BoxGroup("Configuration")]
-        [OdinSerialize]
-        public float SecondsBeforeRecalculation { get; set; } = 0.5f;
-
-        [BoxGroup("Configuration")]
-        [OdinSerialize]
-        public bool IsEnabled {
-            get => _isEnabled;
-            set 
-            {
-                IsEnabledChanged = value != _isEnabled;
-                _isEnabled = value;
-            }
-        }
-        
-        public bool IsEnabledChanged { get; private set; } = false;
-        public bool IsDisabled => !IsEnabled;
-
-        #endregion
-
         #region Probability Properties & Fields
 
-        [BoxGroup("Probability")]
-        [OdinSerialize] [ReadOnly] private float CurrentValue { get; set; }
+        public float CurrentValue { get => _currentValue; }
+        private float _currentValue = 0.0f;
 
-        [PropertySpace]
-        [BoxGroup("Probability")]
-        [ListDrawerSettings(Expanded = true, AlwaysAddDefaultValue = true, CustomAddFunction = nameof(AddValueProbability))]
-        [Searchable]
-        [OdinSerialize]
         public List<XeeksProbabilityValue> ValueProbabilities { get; set; } = new List<XeeksProbabilityValue>();
 
         #endregion
 
         #region Diagnostic Properties & Fields
 
-        [BoxGroup("Diagnostics")]
-        [OdinSerialize] [ReadOnly] private int MaxRandomValue { get; set; }
-
-        [BoxGroup("Diagnostics")]
-        [OdinSerialize] [ReadOnly] private float CurrentRandomValue { get; set; }
-
-        [BoxGroup("Diagnostics")]
-        [PropertySpace]
-        [DisableIf(nameof(IsDisabled))]
-        [InfoBox("This button is disabled because updating isn't possible when the script is not enabled.",
-            InfoMessageType.None, VisibleIf = nameof(IsDisabled))]
-        [Button]
-        public void ForceUpdate() => UpdateCurrentProbability();
+        public int MaxRandomValue { get; private set; }
+        public float CurrentRandomValue { get; private set; }
 
         #endregion
 
-        #region Private Properties & Fields
-
-        private const float UPDATE_INTERVAL = 0.250f;
-        private bool _isEnabled = false;
-        private Coroutine _probabilityRoutine;
-
-        #endregion
-
-        private void Start()
-        {
-            if (IsEnabled) _probabilityRoutine = StartCoroutine(ProbabilityCoroutine());
-        }
-
-        private IEnumerator UpdateCoroutine()
-        {
-            yield return new WaitForSeconds(UPDATE_INTERVAL);
-
-            if (IsEnabledChanged)
-            {
-                IsEnabledChanged = false;
-                StopCoroutine(_probabilityRoutine);
-                if (IsEnabled) _probabilityRoutine = StartCoroutine(ProbabilityCoroutine());
-            }
-        }
-
-        private IEnumerator ProbabilityCoroutine()
-        {
-            yield return new WaitForSeconds(SecondsBeforeRecalculation);
-
-            UpdateCurrentProbability();
-
-            _probabilityRoutine = StartCoroutine(ProbabilityCoroutine());
-        }
-
-        private void UpdateCurrentProbability()
+        public void UpdateCurrentProbability()
         {
             // Check if there's nothing to do:
-            if (ValueProbabilities == null || !ValueProbabilities.Any() || !IsEnabled) return;
+            if (ValueProbabilities == null || !ValueProbabilities.Any()) return;
 
             GenerateProbabilityOffsets();
 
@@ -131,7 +58,7 @@ namespace Xeek
             // If no probability value matched the current random value, just choose the first one:
             var value = selection?.Value ?? ValueProbabilities.First().Value;
 
-            CurrentValue = value;
+            _currentValue = value;
         }
 
         private void GenerateProbabilityOffsets()
@@ -143,11 +70,6 @@ namespace Xeek
                 x.End = offset + x.Probability;
                 offset = x.End + 1;
             });
-        }
-
-        private XeeksProbabilityValue AddValueProbability()
-        {
-            return new XeeksProbabilityValue(ValueProbabilities.Any() ? ValueProbabilities.Last().Value + 1 : 0);
         }
     }
 
