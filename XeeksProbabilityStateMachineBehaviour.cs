@@ -12,8 +12,22 @@ namespace Xeek
         #region Configuration Properties & Fields
 
         [BoxGroup("Configuration")]
-        [Required] [SerializeField] private string animatorParameter;
-        [SerializeField] private bool isParameterAnInteger = false;
+        [InfoBox("Drop in an Animator if you want to select a parameter below from a drop-down menu.", InfoMessageType = InfoMessageType.None)]
+        [OdinSerialize]
+        private Animator Animator { get; set; }
+
+        [BoxGroup("Configuration")]
+        [ValueDropdown(nameof(AvailableParameters))]
+        [ShowIf(nameof(HasAvailableParameters))]
+        [Required]
+        [OdinSerialize]
+        private string AnimatorParameterSelection { get => AnimatorParameter; set => AnimatorParameter = value != "None" ? value : string.Empty; }
+
+        [BoxGroup("Configuration")]
+        [HideIf(nameof(HasAvailableParameters))]
+        [Required]
+        [OdinSerialize]
+        private string AnimatorParameter { get; set; }
 
         #endregion
 
@@ -49,21 +63,62 @@ namespace Xeek
 
         private XeeksProbability _probabilityObject = new XeeksProbability();
 
+        private List<string> AvailableParameters
+        {
+            get
+            {
+                if (Animator != null)
+                {
+                    List<string> availableParameters = new List<string>(new string[] { "None" });
+                    availableParameters.AddRange(Animator.parameters
+                        .Where(x => x.type == AnimatorControllerParameterType.Float || x.type == AnimatorControllerParameterType.Int)
+                        .Select(x => x.name));
+
+                    return availableParameters;
+                }
+                else
+                {
+                    return new List<string>();
+                }
+            }
+        }
+
+        private bool HasAvailableParameters => AvailableParameters?.Any() == true;
+
         #endregion
 
         private void Calculate() => _probabilityObject.UpdateCurrentProbability();
 
         private XeeksProbabilityValue AddValueProbability()
         {
-            return new XeeksProbabilityValue(ValueProbabilities.Any() ? ValueProbabilities.Last().Value + 1 : 0);
+            return new XeeksProbabilityValue(ValueProbabilities.Any() ? ValueProbabilities.Last().Value + 1 : 1);
         }
 
         public override void OnStateEnter(Animator animator, AnimatorStateInfo stateInfo, int layerIndex)
         {
             _probabilityObject.UpdateCurrentProbability();
 
-            if (isParameterAnInteger) animator.SetInteger(animatorParameter, (int)_probabilityObject.CurrentValue);
-            else animator.SetFloat(animatorParameter, _probabilityObject.CurrentValue);
+            AnimatorControllerParameter parameter = animator.parameters.FirstOrDefault(x => x.name == AnimatorParameter);
+
+            if(parameter != null)
+            {
+                switch(parameter.type)
+                {
+                    case AnimatorControllerParameterType.Int:
+                        animator.SetInteger(parameter.nameHash, (int)_probabilityObject.CurrentValue);
+                        break;
+                    case AnimatorControllerParameterType.Float:
+                        animator.SetFloat(parameter.nameHash, _probabilityObject.CurrentValue);
+                        break;
+                    default:
+                        Debug.LogError($"The animator parameter {parameter.name} isn't a type this state machine behaviour can set", this);
+                        break;
+                }
+            }
+            else
+            {
+                Debug.LogError($"The animator parameter {parameter.name} cannot be found by this state machine behaviour", this);
+            }
         }
     }
 }
