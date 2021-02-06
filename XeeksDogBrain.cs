@@ -7,7 +7,6 @@ using UnityEditor;
 using UnityEngine;
 using Xeek.ToolsAndExtensions;
 
-
 namespace Xeek
 {
     [ExecuteAlways]
@@ -37,6 +36,10 @@ namespace Xeek
         public float CurrentVelocity { get; set; }
 
         private bool IsGrounded => _groundDetect.IsGrounded;
+
+        [BoxGroup("Look")]
+        [OdinSerialize]
+        public Transform LookAtObject { get; set; }
 
         #endregion
 
@@ -71,18 +74,29 @@ namespace Xeek
             {
                 CurrentVelocity = _rigidbody.velocity.magnitude;
 
-                if(CurrentVelocity >= -1)
-                _rigidbody.AddForce(
-                    transform.forward * (Acceleration * Time.fixedDeltaTime 
-                    /* Add extra acceleration if just starting off */ + (CurrentVelocity <= 0.5f ? 350.0f : 0.0f)));
+                // Calculate force:
+                Vector3 force = transform.forward * (Acceleration * Time.fixedDeltaTime);
 
-                _rigidbody.velocity = 
-                    Acceleration >= 0.0f ? // Only clamp the velocity if not moving backwards
-                    Vector3.ClampMagnitude(_rigidbody.velocity, MaxVelocity) : 
-                    _rigidbody.velocity;
+                // Give force an initial boost if starting with a low velocity:
+                if (CurrentVelocity <= 0.5f && Acceleration > 0.0f)
+                    force *= 300.0f;
+
+                // Move with force:
+                if (CurrentVelocity >= -1)
+                    _rigidbody.AddForce(force);
+
+                // Clamp velocity if moving forward:
+                if (MaxVelocity >= 0.0f)
+                {
+                    _rigidbody.velocity = _rigidbody.velocity.ClampMagnitude(MaxVelocity);
+                }
+                else
+                {
+                    _rigidbody.velocity = _rigidbody.velocity.ClampMagnitude(MaxVelocity, -1.0f);
+                }
+
 
                 _animator.SetBool("IsWalking", CurrentVelocity > 0.01f);
-                //_animator.SetFloat("forwardVelocity", _rigidbody.velocity.magnitude * 1.38f);
                 _animator.SetFloat("Vertical", CurrentVelocity * (Acceleration < 0.0f ? -1 : 1));
                 //_animator.SetFloat("Horizontal", 1);
             }
