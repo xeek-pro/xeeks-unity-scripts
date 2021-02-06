@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-namespace Xeek
+namespace Xeek.Probability
 {
     public class XeeksProbabilityStateMachineBehaviour : SerializedStateMachineBehaviour
     {

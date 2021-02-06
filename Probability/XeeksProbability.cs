@@ -2,7 +2,7 @@
 using System.Linq;
 using UnityEngine;
 
-namespace Xeek
+namespace Xeek.Probability
 {
     class XeeksProbability
     {

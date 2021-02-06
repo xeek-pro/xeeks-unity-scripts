@@ -2,7 +2,7 @@
 using Sirenix.Serialization;
 using System.Diagnostics;
 
-namespace Xeek
+namespace Xeek.Probability
 {
     [DebuggerDisplay("Comment = {Comment}, Value = {Value}, Offset Range = {Start} - {End}")]
     public class XeeksProbabilityValue
