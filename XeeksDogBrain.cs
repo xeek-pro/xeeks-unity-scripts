@@ -1,15 +1,16 @@
 ﻿using Sirenix.OdinInspector;
 using Sirenix.OdinInspector.Editor;
 using Sirenix.Serialization;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
+using UnityEditor.Animations;
 using UnityEngine;
 using Xeek.ToolsAndExtensions;
 
 namespace Xeek
 {
-    [ExecuteAlways]
     [RequireComponent(typeof(Animator))]
     [RequireComponent(typeof(Rigidbody))]
     [RequireComponent(typeof(XeeksDogGroundDetection))]
@@ -18,28 +19,32 @@ namespace Xeek
         #region Locomotion Properties
         // ------------------------------------------------------------------------------------------------------------
 
-        [BoxGroup("Locomotion")]
+        [FoldoutGroup("Locomotion")]
         [OdinSerialize]
         public bool Walk { get; set; } = false;
 
-        [BoxGroup("Locomotion")]
+        [FoldoutGroup("Locomotion")]
         [OdinSerialize]
         public float Acceleration { get; set; } = 2.0f;
 
-        [BoxGroup("Locomotion")]
+        [FoldoutGroup("Locomotion")]
         [OdinSerialize]
         public float MaxVelocity { get; set; } = 0.5f;
 
-        [BoxGroup("Locomotion")]
+        [FoldoutGroup("Locomotion")]
         [ReadOnly]
         [OdinSerialize]
         public float CurrentVelocity { get; set; }
 
-        private bool IsGrounded => _groundDetect.IsGrounded;
-
-        [BoxGroup("Look")]
+        [FoldoutGroup("Animations")]
         [OdinSerialize]
-        public Transform LookAtObject { get; set; }
+        public XeeksDogLocomotionAnimations LocomotionAnimations { get; set; } = new XeeksDogLocomotionAnimations();
+
+        [FoldoutGroup("Animations")]
+        [OdinSerialize]
+        public XeeksDogIdleAnimations IdleAnimations { get; set; } = new XeeksDogIdleAnimations();
+
+        private bool IsGrounded => _groundDetect.IsGrounded;
 
         #endregion
 
@@ -48,7 +53,6 @@ namespace Xeek
 
         private Animator _animator;
         private Rigidbody _rigidbody;
-        private Collider _collider;
         private XeeksDogGroundDetection _groundDetect;
 
         // ------------------------------------------------------------------------------------------------------------
@@ -58,10 +62,13 @@ namespace Xeek
 
         void Start()
         {
+            _groundDetect = GetComponent<XeeksDogGroundDetection>();
             _animator = GetComponent<Animator>();
             _rigidbody = GetComponent<Rigidbody>();
-            _collider = GetComponent<Collider>();
-            _groundDetect = GetComponent<XeeksDogGroundDetection>();
+            _rigidbody.constraints = RigidbodyConstraints.FreezeRotation;
+
+            LocomotionAnimations.SetupAnimations(_animator);
+            IdleAnimations.SetupAnimations(_animator);
         }
 
         private void FixedUpdate()
@@ -78,8 +85,8 @@ namespace Xeek
                 Vector3 force = transform.forward * (Acceleration * Time.fixedDeltaTime);
 
                 // Give force an initial boost if starting with a low velocity:
-                if (CurrentVelocity <= 0.5f && Acceleration > 0.0f)
-                    force *= 300.0f;
+                //if (CurrentVelocity <= 0.5f && Acceleration > 0.0f)
+                //    force *= 300.0f;
 
                 // Move with force:
                 if (CurrentVelocity >= -1)
@@ -95,7 +102,6 @@ namespace Xeek
                     _rigidbody.velocity = _rigidbody.velocity.ClampMagnitude(MaxVelocity, -1.0f);
                 }
 
-
                 _animator.SetBool("IsWalking", CurrentVelocity > 0.01f);
                 _animator.SetFloat("Vertical", CurrentVelocity * (Acceleration < 0.0f ? -1 : 1));
                 //_animator.SetFloat("Horizontal", 1);
@@ -106,10 +112,13 @@ namespace Xeek
                 //_animator.SetFloat("forwardVelocity", 0);
                 if (!Walk) _rigidbody.velocity = Vector3.zero;
             }
+        }
+
+        private void OnDrawGizmos()
+        {
 
         }
 
         #endregion
-
     }
 }

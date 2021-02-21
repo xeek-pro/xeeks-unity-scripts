@@ -21,7 +21,7 @@ namespace Xeek
         [FoldoutGroup("Ground Detection")]
         [OdinSerialize]
         [ReadOnly]
-        public bool IsGrounded { get; private set; }
+        public bool IsGrounded { get => _isGrounded; set => _ = value; }
 
         /// <summary>
         /// List of Vector3 positions as pairs (start and end of raycast) to aid in ground detection. 
@@ -62,6 +62,9 @@ namespace Xeek
         #endregion
 
         #region Internal Fields
+
+        private bool _isGrounded = false;
+
         #endregion
 
         #region Unity Messages
@@ -144,10 +147,10 @@ namespace Xeek
                     GroundLayers
                 );
 
-                if (IsGrounded = raycastHits.Any()) return IsGrounded;
+                if (_isGrounded = raycastHits.Any()) return _isGrounded;
             }
 
-            return IsGrounded = false;
+            return _isGrounded = false;
         }
 
         #endregion
