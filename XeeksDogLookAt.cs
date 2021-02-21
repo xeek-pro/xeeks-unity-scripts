@@ -75,10 +75,21 @@ namespace Xeek
         [OdinSerialize]
         public float MaxLookAngle { get; set; } = 85.0f;
 
+        // TODO: If the look at target is a player's head, it's possible it's collider (if it has one) is obstructed by
+        // the player's primary collider. Add a way to configure what collider to raycast to for this feature.
         [FoldoutGroup("Look Limits")]
         [PropertyTooltip("If the look at target is obstructed in the look from's view, stop looking at it.")]
+        [InfoBox("The " + nameof(LookAtTarget) + " will always detect as obstructed because it does not have a collider for raycasting.", InfoMessageType.Warning, VisibleIf = nameof(LookAtTargetHasMissingCollider))]
         [OdinSerialize]
         public bool StopLookingOnObstruction { get; set; } = true;
+        private bool LookAtTargetHasMissingCollider
+        {
+            get
+            {
+                var collider = LookAtTarget == null ? null : LookAtTarget.gameObject.GetComponent<Collider>();
+                return collider == null || !collider.enabled;
+            }
+        }
 
         #endregion
 
